@@ -1,3 +1,0 @@
-SECRET_KEY=72bea0713c7deb0b0362fcd1333cd716d6997d50db42728ff23b8430382acddd
-ALGORITHM=HS256
-DATABASE_URL=postgresql://postgres:superdawod@localhost/TodoAppDatabase
