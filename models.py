@@ -13,7 +13,7 @@ class User(Base):
     last_name = Column(String, nullable=False)
     is_active = Column(Boolean, default=True)
     role = Column(String, default='user')
-    phone_number = Column(String, nullable=True , unique=True )
+    phone_number = Column(String, nullable=False , unique=True )
 
 
     todos = relationship("Todo", back_populates="owner")

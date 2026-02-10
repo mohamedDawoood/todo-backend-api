@@ -1,18 +1,17 @@
 import os
 from dotenv import load_dotenv
-from fastapi import APIRouter, Depends, HTTPException, Path
+from fastapi import APIRouter, Depends, HTTPException
 from datetime import datetime , timedelta , timezone
 from jose import jwt , JWTError
 from pydantic import BaseModel
 from starlette import status
-from models import User, Todo
+from models import User
 from database import SessionLocal
 from sqlalchemy.orm import Session
 from passlib.context import CryptContext
 from typing import Annotated
-from fastapi.security import OAuth2PasswordRequestForm , OAuth2PasswordBearer
+from fastapi.security import OAuth2PasswordBearer
 
-router = APIRouter(prefix="/auth", tags=["auth"])
 
 load_dotenv()
 
@@ -31,7 +30,8 @@ class UserRequest(BaseModel):
     password: str
     first_name: str
     last_name: str
-    role: str
+    phone_number: str
+
 
 
 class Token(BaseModel):
@@ -101,64 +101,3 @@ async def is_admin(current_user: Annotated[dict, Depends(get_current_user)]):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Only administrators can access this page")
     return current_user
 
-
-admin_dependency = Annotated[User , Depends(is_admin) ]
-
-
-
-
-@router.post("/register", status_code=status.HTTP_201_CREATED)
-async def signup(create_user_request: UserRequest, db: db_dependency):
-
-
-    create_user_model = User(
-        username=create_user_request.username,
-        email=create_user_request.email,
-        first_name=create_user_request.first_name,
-        last_name=create_user_request.last_name,
-        role="user",
-        hashed_password=crypt_context.hash(create_user_request.password),
-        is_active=True
-    )
-
-    db.add(create_user_model)
-    db.commit()
-    db.refresh(create_user_model)
-
-    return create_user_model
-
-@router.post("/login", response_model= Token, status_code=status.HTTP_200_OK)
-async def login_user(form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
-                        db: db_dependency ):
-
-    user = authenticate_user(form_data.username , form_data.password , db)
-    if not user:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
-                            detail="Could not validate credentials")
-
-    token = create_access_token(user.username , user.id, user.role , timedelta(minutes=20))
-
-
-
-    return {"access_token" : token, "token_type" : "bearer"}
-
-
-# -------------------------------
-#            ADMIN ROUTE
-# -------------------------------
-
-@router.get("/admin/todo", status_code=status.HTTP_200_OK)
-async def read_all_by_admin(db: db_dependency, current_user: admin_dependency):
-
-    return db.query(Todo).all()
-
-
-@router.delete("/admin/todo/{todo_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_todo_by_admin(db: db_dependency, current_user: admin_dependency, todo_id: int = Path(gt=0)):
-
-    todo_model = db.query(Todo).filter(Todo.id == todo_id).first()
-    if todo_model is None:
-        raise HTTPException(status_code=404, detail="Todo not found")
-
-    db.delete(todo_model)
-    db.commit()

@@ -7,7 +7,7 @@ from models import Todo
 from typing import Annotated
 from .auth import get_current_user
 
-router = APIRouter()
+router = APIRouter(prefix="/todos", tags=["todos"])
 
 
 
@@ -43,7 +43,7 @@ async def read_all(db: db_dependency ,
 # -------------------------------
 #            READ ONE
 # -------------------------------
-@router.get("/todos/{todo_id}", status_code=status.HTTP_200_OK)
+@router.get("/{todo_id}", status_code=status.HTTP_200_OK)
 async def read_todo(db: db_dependency,
                     current_user: user_dependency,
                     todo_id: int = Path(gt=0)):
@@ -61,7 +61,7 @@ async def read_todo(db: db_dependency,
 # -------------------------------
 #            CREATE
 # -------------------------------
-@router.post("/todos", status_code=status.HTTP_201_CREATED)
+@router.post("/", status_code=status.HTTP_201_CREATED)
 async def create_todo(todo: TodoRequest, db: db_dependency , current_user : user_dependency):
     if current_user is None:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
@@ -78,7 +78,7 @@ async def create_todo(todo: TodoRequest, db: db_dependency , current_user : user
 #            UPDATE
 # -------------------------------
 
-@router.put("/todos/{todo_id}", status_code=status.HTTP_200_OK)
+@router.put("/{todo_id}", status_code=status.HTTP_200_OK)
 async def update_todo(
     db: db_dependency ,
     current_user: user_dependency ,
@@ -106,7 +106,7 @@ async def update_todo(
 # -------------------------------
 
 
-@router.delete("/todos/{todo_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete("/{todo_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_todo(
         db: db_dependency ,
         current_user: user_dependency ,
