@@ -1,6 +1,6 @@
 import os
 from dotenv import load_dotenv
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException , Request
 from datetime import datetime , timedelta , timezone
 from jose import jwt , JWTError
 from pydantic import BaseModel
@@ -50,6 +50,9 @@ def get_db():
 db_dependency = Annotated[Session, Depends(get_db)]
 
 
+
+
+
 def authenticate_user(username : str  , password : str , db):
     user = db.query(User).filter(User.username == username).first()
     if not user:
@@ -72,18 +75,35 @@ def create_access_token(username : str , user_id : int , role : str , expires_de
     return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
 
 
+from fastapi import Request
 
-async def get_current_user(token : Annotated[str , Depends(oauth2_bearer)]):
+
+async def get_current_user(request: Request):
+    token = request.cookies.get("access_token")
+
+    if not token:
+        auth_header = request.headers.get("Authorization")
+        if auth_header and auth_header.startswith("Bearer "):
+            token = auth_header.split(" ")[1]
+
+    if not token:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Authentication token missing"
+        )
+
     try:
-        payload =jwt.decode(token , SECRET_KEY, algorithms=[ALGORITHM])
-        username  : str = payload.get("sub")
-        user_id : int = payload.get("id")
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        username: str = payload.get("sub")
+        user_id: int = payload.get("id")
         user_role: str = payload.get("role")
 
         if username is None or user_id is None:
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
-                                detail="Could not validate credentials")
-        return { "username" : username , "id" : user_id , "role" : user_role }
+                                detail="Could not validate user")
+
+        return {"username": username, "id": user_id, "role": user_role}
+
     except JWTError:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
                             detail="Could not validate credentials")
@@ -93,7 +113,7 @@ async def get_current_user(token : Annotated[str , Depends(oauth2_bearer)]):
 
 
 
-user_dependency = Annotated[User ,Depends(get_current_user) ]
+user_dependency = Annotated[dict ,Depends(get_current_user) ]
 
 
 async def is_admin(current_user: Annotated[dict, Depends(get_current_user)]):

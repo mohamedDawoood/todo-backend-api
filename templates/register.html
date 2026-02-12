@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Join Us - TodoApp</title>
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', path='/css/bootstrap.css') }}">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <style>
+        body { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; display: flex; align-items: center; }
+        .register-card { max-width: 500px; width: 100%; border: none; border-radius: 20px; box-shadow: 0 15px 35px rgba(0,0,0,0.2); background: rgba(255, 255, 255, 0.95); }
+        .btn-register { background: #764ba2; border: none; transition: 0.3s; padding: 12px; }
+        .btn-register:hover { background: #5a3782; transform: translateY(-2px); }
+        .form-control { border-radius: 10px; padding: 12px; }
+        .fade-in { animation: fadeIn 0.6s ease-in; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+</head>
+<body>
+
+<div class="container d-flex justify-content-center">
+    <div class="register-card p-4 p-md-5 fade-in">
+        <div class="text-center mb-4">
+            <h2 class="fw-bold text-dark">Create Account</h2>
+            <p class="text-muted">Fill in your details to get started</p>
+        </div>
+
+        <form id="registerForm">
+            <div class="row g-2 mb-3">
+                <div class="col-md-6">
+                    <input type="text" id="firstName" class="form-control" placeholder="First Name" required>
+                </div>
+                <div class="col-md-6">
+                    <input type="text" id="lastName" class="form-control" placeholder="Last Name" required>
+                </div>
+            </div>
+            <div class="mb-3">
+                <input type="text" id="username" class="form-control" placeholder="Username" required>
+            </div>
+            <div class="mb-3">
+                <input type="email" id="email" class="form-control" placeholder="Email Address" required>
+            </div>
+            <div class="mb-3">
+                <input type="text" id="phone" class="form-control" placeholder="Phone Number" required>
+            </div>
+            <div class="mb-4">
+                <input type="password" id="password" class="form-control" placeholder="Password" required>
+            </div>
+
+            <button type="submit" class="btn btn-primary btn-register w-100 fw-bold text-white shadow-sm mb-3">SIGN UP</button>
+
+            <div class="text-center">
+                <span class="text-muted small">Already have an account? </span>
+                <a href="/users/login-page" class="text-decoration-none small fw-bold" style="color: #764ba2;">Login Here</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    document.getElementById('registerForm').onsubmit = async (e) => {
+        e.preventDefault();
+
+        const userData = {
+            username: document.getElementById('username').value,
+            email: document.getElementById('email').value,
+            first_name: document.getElementById('firstName').value,
+            last_name: document.getElementById('lastName').value,
+            password: document.getElementById('password').value,
+            phone_number: document.getElementById('phone').value
+        };
+
+        try {
+            const response = await fetch('/users/register', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(userData)
+            });
+
+            if (response.ok) {
+                Swal.fire('Success!', 'Account created successfully!', 'success')
+                .then(() => window.location.href = "/users/login-page");
+            } else {
+                const error = await response.json();
+                Swal.fire('Error', error.detail || 'Registration failed', 'error');
+            }
+        } catch (err) {
+            Swal.fire('Error', 'Server connection failed', 'error');
+        }
+    };
+</script>
+</body>
+</html>

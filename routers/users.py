@@ -1,17 +1,49 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException , Request
 from datetime import timedelta
 from starlette import status
+from starlette.responses import HTMLResponse
+
 from models import User
 from typing import Annotated
 from fastapi.security import OAuth2PasswordRequestForm
 from routers.auth import UserRequest, db_dependency, crypt_context, Token, authenticate_user, \
     create_access_token, user_dependency
+from fastapi.templating import Jinja2Templates
+
 
 router = APIRouter(prefix="/users", tags=["Users"])
 
 
+
+templates = Jinja2Templates(directory="templates")
+
+### pages ###
+
+@router.get("/login-page" )
+async def login_page(request: Request):
+    return templates.TemplateResponse("login.html", {"request": request})
+
+
+@router.get("/register-page")
+async def register_page(request: Request):
+    return templates.TemplateResponse("register.html", {"request": request})
+
+
 @router.post("/register", status_code=status.HTTP_201_CREATED)
 async def signup(create_user_request: UserRequest, db: db_dependency):
+
+
+    existing_username = db.query(User).filter(User.username == create_user_request.username).first()
+    if existing_username:
+        raise HTTPException(status_code=400, detail="Username is already taken. Try another one.")
+
+    existing_email = db.query(User).filter(User.email == create_user_request.email).first()
+    if existing_email:
+        raise HTTPException(status_code=400, detail="Email is already registered.")
+
+    existing_phone = db.query(User).filter(User.phone_number == create_user_request.phone_number).first()
+    if existing_phone:
+        raise HTTPException(status_code=400, detail="Phone number is already registered.")
 
 
     create_user_model = User(
@@ -27,25 +59,30 @@ async def signup(create_user_request: UserRequest, db: db_dependency):
 
     db.add(create_user_model)
     db.commit()
-    db.refresh(create_user_model)
+    return {"message": "User created successfully"}
 
-    return create_user_model
+from starlette.responses import JSONResponse
 
-@router.post("/login", response_model= Token, status_code=status.HTTP_200_OK)
+
+@router.post("/login", status_code=status.HTTP_200_OK)
 async def login_user(form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
-                        db: db_dependency ):
-
-    user = authenticate_user(form_data.username , form_data.password , db)
+                     db: db_dependency):
+    user = authenticate_user(form_data.username, form_data.password, db)
     if not user:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
                             detail="Could not validate credentials")
 
-    token = create_access_token(user.username , user.id, user.role , timedelta(minutes=20))
+    token = create_access_token(user.username, user.id, user.role, timedelta(minutes=20))
 
 
+    response = JSONResponse(content={
+        "access_token": token,
+        "token_type": "bearer",
+        "user_role": user.role
+    })
+    response.set_cookie(key="access_token", value=token, httponly=True)
 
-    return {"access_token" : token, "token_type" : "bearer"}
-
+    return response
 
 
 @router.put("/update" )

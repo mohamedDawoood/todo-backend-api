@@ -1,8 +1,10 @@
 from typing import Annotated
 
-from fastapi import HTTPException, Path, Depends, APIRouter
+from fastapi import HTTPException, Path, Depends, APIRouter , Request
+from fastapi.templating import Jinja2Templates
 
 from starlette import status
+
 from models import Todo, User
 from routers.auth import db_dependency, is_admin
 
@@ -10,6 +12,22 @@ admin_dependency = Annotated[User , Depends(is_admin) ]
 
 
 router = APIRouter(prefix="/admin", tags=["Admin"])
+
+templates = Jinja2Templates(directory="templates")
+
+### page
+@router.get("/todo-page")
+async def admin_todo_page(request: Request, db: db_dependency, current_user: admin_dependency):
+    all_todos = db.query(Todo).all()
+
+    return templates.TemplateResponse("admin.html", {
+        "request": request,
+        "todos": all_todos,
+        "user": current_user
+    })
+
+
+
 
 
 @router.get("/todo", status_code=status.HTTP_200_OK)

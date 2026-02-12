@@ -1,11 +1,17 @@
-from fastapi import Depends, HTTPException, Path, APIRouter
+from fastapi import Depends, HTTPException, Path, APIRouter , Request
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 from starlette import status
+
+import models
 from database import  SessionLocal
 from models import Todo
 from typing import Annotated
 from .auth import get_current_user
+from fastapi.templating import Jinja2Templates
+from starlette.responses import RedirectResponse
+
+
 
 router = APIRouter(prefix="/todos", tags=["todos"])
 
@@ -28,6 +34,30 @@ class TodoRequest(BaseModel):
     description: str = Field(min_length=3, max_length=100)
     priority: int = Field(gt=0, lt=6)
     complete: bool
+
+
+
+
+templates = Jinja2Templates(directory="templates")
+
+
+# في ملف routers/todos.py
+@router.get("/todo-page")
+async def render_todo_page(request: Request, db: db_dependency, user: user_dependency):
+    if user is None:
+        return RedirectResponse(url="/users/login-page", status_code=status.HTTP_302_FOUND)
+
+    todos = db.query(Todo).filter(Todo.owner_id == user.get('id')).all()
+
+
+    return templates.TemplateResponse("todo.html", {
+        "request": request,
+        "todos": todos,
+        "user": user
+    })
+
+
+
 
 
 # -------------------------------
