@@ -15,8 +15,8 @@ from fastapi.security import OAuth2PasswordBearer
 
 load_dotenv()
 
-SECRET_KEY = os.getenv("SECRET_KEY")
-ALGORITHM = os.getenv("ALGORITHM")
+SECRET_KEY = "qEBwxPSSczctLaim"
+ALGORITHM = "HS256"
 
 crypt_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 oauth2_bearer = OAuth2PasswordBearer(tokenUrl="auth/login")
